@@ -1,0 +1,89 @@
+import pandas as pd
+import numpy as np
+from faker import Faker
+import random
+from datetime import date
+
+
+# Initialize Faker
+fake = Faker()
+np.random.seed(42)
+random.seed(42)
+
+
+# Define options
+products = ["Laptop", "Phone", "Tablet", "Monitor", "Headphones", "Smartwatch"]
+countries = ["USA", "Canada", "UK", "Australia", "India"]
+genders = ["Male", "Female"]
+
+
+# Generate 100 rows of messy sales data
+data = []
+for i in range(100):
+    order_id = 1000 + i
+    name = fake.name()
+    gender = random.choice(genders + ["male", "female", "M", "F", None])
+    product = random.choice(products)
+    order_date = fake.date_between(start_date=date(2023, 1, 1), end_date=date(2025, 12, 31))
+    sales = round(random.uniform(100, 5000), 2)
+    country = random.choice(countries + ["usa", "uk ", "u.k.", "CANADA", None])
+
+
+    # Introduce some missing and inconsistent data intentionally
+    if random.random() < 0.05:
+        sales = None
+    if random.random() < 0.05:
+        name = None
+
+
+    data.append([order_id, name, gender, product, order_date, sales, country])
+
+
+# Create DataFrame
+df = pd.DataFrame(data, columns=["Order ID", "Customer Name", "Gender", "Product", "Order Date", "Sales", "Country"])
+
+
+# ---------- Data Cleaning ----------
+
+
+# Remove duplicates
+df = df.drop_duplicates()
+
+
+# Handle missing values
+df["Customer Name"].fillna("Unknown", inplace=True)
+df["Gender"].fillna("Unknown", inplace=True)
+df["Country"].fillna("Unknown", inplace=True)
+df["Sales"].fillna(df["Sales"].median(), inplace=True)
+
+
+# Standardize text
+df["Gender"] = df["Gender"].str.strip().str.lower().replace({
+    "m": "male",
+    "f": "female"
+}).str.capitalize()
+
+
+df["Country"] = df["Country"].str.strip().str.lower().replace({
+    "u.k.": "uk"
+}).str.upper()
+
+
+df["Product"] = df["Product"].str.title()
+df["Customer Name"] = df["Customer Name"].str.title().str.strip()
+
+
+# Convert and format date
+df["Order Date"] = pd.to_datetime(df["Order Date"], errors="coerce", dayfirst=True)
+df["Order Date"] = df["Order Date"].dt.strftime("%d-%m-%Y")
+
+
+# Clean column names
+df.columns = [c.strip().lower().replace(" ", "_") for c in df.columns]
+
+
+# Save cleaned dataset
+df.to_csv("cleaned_data/cleaned_sales_data_100rows.csv", index=False)
+
+
+print("✅ Cleaned dataset saved successfully in 'cleaned_data/cleaned_sales_data_100rows.csv'!")
